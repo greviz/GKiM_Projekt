@@ -10,6 +10,8 @@
 #include <SDL/SDL.h>
 #else
 #include <SDL.h>
+#include <SDL_mouse.h>
+#include <SDL_rect.h>
 #endif
 
 #include <iostream>
@@ -19,7 +21,7 @@ using namespace std;
 
 SDL_Window * window;
 SDL_Surface *screen;
-int width = 450;
+int width = 525;
 int height = 300;
 char const* tytul = "GKiM - Lab 1 - Nazwisko Imie";
 
@@ -43,6 +45,7 @@ void wyzerujMaciez(double ** m, int x, int y);
 double min(double x, double y);
 double max(double x, double y);
 
+void ladujButton(char const* nazwa, int x, int y);
 
 
 int main(int argc, char** argv)
@@ -63,6 +66,11 @@ int main(int argc, char** argv)
 			if (SDL_QUIT == event.type)
 			{
 				done = true;
+			}
+			else if (SDL_MOUSEBUTTONDOWN == event.type)
+			{
+				if (event.button.x < 525 && event.button.x > 450 && event.button.y > 0 && event.button.y < 25)
+					done = true;
 			}
 			else if (SDL_KEYDOWN == event.type)
 			{
@@ -107,6 +115,9 @@ int initSdl()
 	window = SDL_CreateWindow(tytul, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_SHOWN);
 	screen = SDL_GetWindowSurface(window);
 	renderer = SDL_CreateRenderer(window, -1, 0);
+
+	ladujButton("quitButton.bmp", 450, 0);
+	
 
 	if (!screen)
 	{
@@ -359,4 +370,27 @@ double max(double x, double y)
 		return x;
 	else
 		return y;
+}
+void ladujButton(const char *nazwa, int x, int y)
+{
+	SDL_Surface* bmp = SDL_LoadBMP(nazwa);
+	if (!bmp)
+	{
+		printf("Unable to load bitmap: %s\n", SDL_GetError());
+	}
+	else
+	{
+		SDL_Rect button;
+		button.x = x;
+		button.y = y;
+		button.h = 25;
+		button.w = 75;
+
+
+		SDL_BlitSurface(bmp, 0, screen, &button);
+
+		SDL_UpdateWindowSurface(window);
+
+		SDL_FreeSurface(bmp);
+	}
 }

@@ -10,8 +10,6 @@
 #include <SDL/SDL.h>
 #else
 #include <SDL.h>
-#include <SDL_mouse.h>
-#include <SDL_rect.h>
 #endif
 
 #include <iostream>
@@ -21,7 +19,7 @@ using namespace std;
 
 SDL_Window * window;
 SDL_Surface *screen;
-int width = 525;
+int width = 450;
 int height = 300;
 char const* tytul = "GKiM - Lab 1 - Nazwisko Imie";
 
@@ -46,6 +44,8 @@ double min(double x, double y);
 double max(double x, double y);
 
 void ladujButton(char const* nazwa, int x, int y);
+void initButtons();
+bool isMouseInButton(int bx, int by, int mx, int my);
 
 
 int main(int argc, char** argv)
@@ -69,8 +69,16 @@ int main(int argc, char** argv)
 			}
 			else if (SDL_MOUSEBUTTONDOWN == event.type)
 			{
-				if (event.button.x < 525 && event.button.x > 450 && event.button.y > 0 && event.button.y < 25)
-					done = true;
+				if(isMouseInButton(450,0,event.button.x,event.button.y))
+					Funkcja1();
+				if (isMouseInButton(450, 60, event.button.x, event.button.y))
+					Funkcja2();
+				if (isMouseInButton(450, 120, event.button.x, event.button.y))
+					Funkcja3();
+				if (isMouseInButton(450, 180, event.button.x, event.button.y))
+					zapiszBMP("nowy.bmp"); cout << "Zapis pliku poprawny" << endl;
+				if (isMouseInButton(450, 240, event.button.x, event.button.y))
+					done = true;;
 			}
 			else if (SDL_KEYDOWN == event.type)
 			{
@@ -112,11 +120,11 @@ int initSdl()
 	const int bitDepth = 32;
 
 	// create a new window
-	window = SDL_CreateWindow(tytul, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_SHOWN);
+	window = SDL_CreateWindow(tytul, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width+125, height, SDL_WINDOW_SHOWN);
 	screen = SDL_GetWindowSurface(window);
 	renderer = SDL_CreateRenderer(window, -1, 0);
 
-	ladujButton("quitButton.bmp", 450, 0);
+	initButtons();
 	
 
 	if (!screen)
@@ -221,6 +229,7 @@ void ladujBMP(char const* nazwa, int x, int y)
 
 void czyscEkran(Uint8 R, Uint8 G, Uint8 B)
 {
+	screen->w = 450;
 	SDL_FillRect(screen, 0, SDL_MapRGB(screen->format, R, G, B));
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
@@ -344,6 +353,7 @@ void Funkcja3()
 
 void zapiszBMP(char const * tytul)
 {
+	screen->w = 450; // zmieniam rozmiar obrazu dla zapisu ( obciecie przyciskow)
 	if (SDL_SaveBMP(screen, tytul) < 0)
 		cout << "Nie udalo sie zapisac BMP " << endl;
 }
@@ -392,5 +402,24 @@ void ladujButton(const char *nazwa, int x, int y)
 		SDL_UpdateWindowSurface(window);
 
 		SDL_FreeSurface(bmp);
+	}
+}
+void initButtons()
+{
+	ladujButton("6BitColorButton.bmp", 450, 0);
+	ladujButton("6BitGrayButton.bmp", 450, 60);
+	ladujButton("DitheringButton.bmp", 450, 120);
+	ladujButton("SaveButton.bmp", 450, 180);
+	ladujButton("QuitButton.bmp", 450, 240);
+}
+bool isMouseInButton(int bx, int by, int mx, int my)
+{
+	if (mx < bx+125 && mx > bx && my < by+60 && my>by)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
 	}
 }

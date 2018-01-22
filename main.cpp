@@ -14,6 +14,8 @@
 
 #include <iostream>
 #include <cmath>
+#include <fstream>
+#include <vector>
 using namespace std;
 
 
@@ -21,7 +23,7 @@ SDL_Window * window;
 SDL_Surface *screen;
 int width = 450;
 int height = 300;
-char const* tytul = "Narazie chuja a nie enkoder albo dekoder";
+char const* tytul = "GKiM - Lab 1 - Nazwisko Imie";
 
 SDL_Renderer * renderer;
 
@@ -47,6 +49,10 @@ void ladujButton(char const* nazwa, int x, int y);
 void initButtons();
 bool isMouseInButton(int bx, int by, int mx, int my);
 
+void saveBitmapToFile();
+void readBitmapFromFile();
+vector<int> ByteRunCompress(vector<int> a, int length);
+void ByteRunDecompress();
 
 int main(int argc, char** argv)
 {
@@ -69,7 +75,7 @@ int main(int argc, char** argv)
 			}
 			else if (SDL_MOUSEBUTTONDOWN == event.type)
 			{
-				if(isMouseInButton(450,0,event.button.x,event.button.y))
+				if (isMouseInButton(450, 0, event.button.x, event.button.y))
 					Funkcja1();
 				if (isMouseInButton(450, 60, event.button.x, event.button.y))
 					Funkcja2();
@@ -90,6 +96,8 @@ int main(int argc, char** argv)
 					Funkcja2();
 				if (event.key.keysym.sym == SDLK_3)
 					Funkcja3();
+				if (event.key.keysym.sym == SDLK_4)
+					ByteRunDecompress();
 				if (event.key.keysym.sym == SDLK_z)
 					zapiszBMP("nowy.bmp");
 				if (event.key.keysym.sym == SDLK_a)
@@ -120,12 +128,12 @@ int initSdl()
 	const int bitDepth = 32;
 
 	// create a new window
-	window = SDL_CreateWindow(tytul, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width+125, height, SDL_WINDOW_SHOWN);
+	window = SDL_CreateWindow(tytul, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width + 125, height, SDL_WINDOW_SHOWN);
 	screen = SDL_GetWindowSurface(window);
 	renderer = SDL_CreateRenderer(window, -1, 0);
 
 	initButtons();
-	
+
 
 	if (!screen)
 	{
@@ -222,13 +230,14 @@ void ladujBMP(char const* nazwa, int x, int y)
 
 		SDL_UpdateWindowSurface(window);
 
- 
+
 		SDL_FreeSurface(bmp);
 	}
 }
 
 void czyscEkran(Uint8 R, Uint8 G, Uint8 B)
 {
+	screen->w = 450;
 	SDL_FillRect(screen, 0, SDL_MapRGB(screen->format, R, G, B));
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
@@ -256,6 +265,8 @@ void Funkcja1()
 
 
 	SDL_UpdateWindowSurface(window);
+	saveBitmapToFile();
+	czyscEkran(0,0,0);
 }
 
 void Funkcja2()
@@ -360,8 +371,8 @@ void zapiszBMP(char const * tytul)
 void wyzerujMaciez(double ** m, int x, int y)
 {
 	for (int i = 0; i < x; i++)
-	for (int j = 0; j < y; j++)
-		m[i][j] = 0;
+		for (int j = 0; j < y; j++)
+			m[i][j] = 0;
 }
 
 double min(double x, double y)
@@ -412,7 +423,7 @@ void initButtons()
 }
 bool isMouseInButton(int bx, int by, int mx, int my)
 {
-	if (mx < bx+125 && mx > bx && my < by+60 && my>by)
+	if (mx < bx + 125 && mx > bx && my < by + 60 && my>by)
 	{
 		return true;
 	}
@@ -420,4 +431,197 @@ bool isMouseInButton(int bx, int by, int mx, int my)
 	{
 		return false;
 	}
+}
+
+void saveBitmapToFile()
+{
+	double wspolczynnikR, wspolczynnikG, wspolczynnikB;
+	bool typKompresji, kolor, paleta;
+	int colorAmount = 0;
+	vector<int> pixels, compressedPixelsByteRun, compressedPixelsRLE;
+	SDL_Color pomocniczy;
+	ofstream file;
+	file.open("bitmap.ggps");
+
+	typKompresji = kolor = 0;
+	paleta = 1;
+
+	if (file.good())
+	{
+		
+		for (int x = 0; x < width; x++)
+		{
+			for (int y = 0; y < height; y++)
+			{
+				pomocniczy = getPixel(x, y);
+				wspolczynnikR = pomocniczy.r / 85;
+				wspolczynnikG = pomocniczy.g / 85;
+				wspolczynnikB = pomocniczy.b / 85;
+
+				pixels.push_back(wspolczynnikR);
+				pixels.push_back(wspolczynnikG);
+				pixels.push_back(wspolczynnikB);
+			}
+		}
+
+		compressedPixelsByteRun = ByteRunCompress(pixels, pixels.size());
+
+		file << "s3g" << " ";
+		file << 26 + 3 * 4 * colorAmount + 3 * 4 * width * height << " ";
+		file << 10 + colorAmount << " ";
+		file << width << " ";
+		file << height << " ";
+		file << typKompresji << " ";
+		file << kolor << " ";
+		file << paleta << " ";
+		file << colorAmount << " ";
+		file << 10 << " ";
+		
+		//tu jeszcze paleta kolorów wleci
+
+		for (int i = 0; i < compressedPixelsByteRun.size(); i++)
+			file << compressedPixelsByteRun[i] << " ";
+
+		//przygotuj jutro dekompresor z tego formatu
+
+		file.close();
+	}
+}
+
+void readBitmapFromFile()
+{
+	int wspolczynnikR, wspolczynnikG, wspolczynnikB;
+	ifstream file;
+	file.open("bitmap.ggps");
+
+	if (file.good())
+		for (int x = 0; x < width; x++)
+		{
+			for (int y = 0; y < height; y++)
+			{
+					file >> wspolczynnikR;
+					file >> wspolczynnikG;
+					file >> wspolczynnikB;
+
+					setPixel(x, y, wspolczynnikR * 85, wspolczynnikG * 85, wspolczynnikB * 85);
+			}
+		}
+	file.close();
+
+	SDL_UpdateWindowSurface(window);
+}
+
+vector<int> ByteRunCompress(vector<int> a, int length)
+{
+	vector<int> output;
+	int i = 0;
+
+	while (i < length)
+	{
+		//sekwencja powtarzajacych sie bajtow
+		if ((i < length - 1) &&
+			(a[i] == a[i + 1]))
+		{
+			//zmierz dlugosc sekwencji
+			int j = 0;
+			while ((i + j < length - 1) &&
+				(a[i + j] == a[i + j + 1]) &&
+				(j < 127))
+			{
+				j++;
+			}
+			//wypisz spakowana sekwencje
+			output.push_back(-j);
+			output.push_back(a[i + j]);
+			//przesun wskaznik o dlugosc sekwencji
+			i += (j + 1);
+		}
+		//sekwencja roznych bajtow
+		else
+		{
+			//zmierz dlugosc sekwencji
+			int j = 0;
+			while ((i + j < length - 1) &&
+				(a[i + j] != a[j + i + 1]) &&
+				(j < 128))
+			{
+				j++;
+			}
+			//dodaj jeszcze koncowke
+			if ((i + j == length - 1) &&
+				(j < 128))
+			{
+				j++;
+			}
+			//wypisz spakowana sekwencje
+			output.push_back((j - 1));
+			for (int k = 0; k<j; k++)
+			{
+				output.push_back(a[i + k]);
+							}
+			//przesun wskaznik o dlugosc sekwencji
+			i += j;
+		}
+	}
+	return output;
+}
+
+void ByteRunDecompress()
+{
+	fstream in;
+	string x;
+	int temp;
+	vector<int> decompressedData, a;
+	int i = 0;
+	in.open("compressedBitmap.ggps", ios::in);
+
+	while (in.good())
+	{
+		in >> temp;
+		a.push_back(temp);
+	}
+
+	//dopoki wszystkie bajty nie sa zdekompresowane
+	while (i < a.size())
+	{
+		//kod pusty
+		if (a[i] == -128)
+		{
+			i++;
+		}
+		//sekwencja powtarzajacych sie bajtow
+		else if (a[i] < 0)
+		{
+			for (int j = 0; j<-(a[i] - 1); j++)
+			{
+				decompressedData.push_back((int)a[i + 1]);
+			}
+			i += 2;
+		}
+		//sekwencja roznych bajtow
+		else
+		{
+			for (int j = 0; j<(a[i] + 1) && i + 1 + j < a.size(); j++)
+			{
+				decompressedData.push_back((int)a[i + 1 + j]);
+			}
+			i += a[i] + 2;
+		}
+	}
+
+	in.close();
+	i = 0;
+
+		 for (int x = 0; x < width; x++)
+		{
+			for (int y = 0; y < height; y++)
+			{
+
+				setPixel(x, y, decompressedData[i] * 85, decompressedData[i+1] * 85, decompressedData[i+2] * 85);
+				i += 3;
+			}
+		}
+
+	SDL_UpdateWindowSurface(window); 
+
 }

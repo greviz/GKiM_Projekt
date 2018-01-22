@@ -21,7 +21,7 @@ SDL_Window * window;
 SDL_Surface *screen;
 int width = 450;
 int height = 300;
-char const* tytul = "GKiM - Lab 1 - Nazwisko Imie";
+char const* tytul = "Narazie chuja a nie enkoder albo dekoder";
 
 SDL_Renderer * renderer;
 

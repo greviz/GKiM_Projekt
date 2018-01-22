@@ -229,7 +229,6 @@ void ladujBMP(char const* nazwa, int x, int y)
 
 void czyscEkran(Uint8 R, Uint8 G, Uint8 B)
 {
-	screen->w = 450;
 	SDL_FillRect(screen, 0, SDL_MapRGB(screen->format, R, G, B));
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);

@@ -22,7 +22,7 @@
 #include <string>
 using namespace std;
 
-
+//Grzesiek to pa³a
 SDL_Window * window;
 SDL_Surface *screen;
 int width = 450;

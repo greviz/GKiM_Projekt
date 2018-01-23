@@ -14,6 +14,12 @@
 
 #include <iostream>
 #include <cmath>
+#include <fstream>
+#include <vector>
+#include <chrono>
+#include <map>
+#include <algorithm>
+#include <string>
 using namespace std;
 
 
@@ -21,16 +27,23 @@ SDL_Window * window;
 SDL_Surface *screen;
 int width = 450;
 int height = 300;
-char const* tytul = "GKiM - Lab 1 - Nazwisko Imie";
+char const* tytul = "S3g kompresor";
+vector<SDL_Color> Colors64; // tablica najczêstszych 64 kolorów <kolor>
+int typKompresji, kolor, paleta, dithering;
+int counter;
+char *fileDir="";  // sciezka do pliku
 
 SDL_Renderer * renderer;
 
 
 int initSdl();
 
-void Funkcja1();
-void Funkcja2();
-void Funkcja3();
+vector<int> Bit6Color();
+vector<int> Bit6GreyScale();
+vector<int> Bit6Dithering();
+vector<int> Bit6Dedicated();
+
+void Draw(vector<int> pixels, bool c, bool p, int w, int h);
 
 void ladujBMP(char const* nazwa, int x, int y);
 
@@ -45,8 +58,26 @@ double max(double x, double y);
 
 void ladujButton(char const* nazwa, int x, int y);
 void initButtons();
-bool isMouseInButton(int bx, int by, int mx, int my);
+bool isMouseInButton(int by, int mx, int my);
+void convertMsgBox();
 
+void saveBitmapToFile();
+void readBitmapFromFile();
+vector<int> ByteRunCompress(vector<int> a, int length);
+vector<int> ByteRunDecompress(vector<int>);
+
+bool operator ==(const SDL_Color &c1, const SDL_Color &c2) {
+	return c1.r == c2.r && c1.g == c2.g && c1.b == c2.b;
+}
+bool operator  <(const SDL_Color &c1, const SDL_Color &c2) {
+	if (c1.r == c2.r) {
+		if (c1.g == c2.g) {
+			return c1.b < c2.b;
+		}
+		else return c1.g < c2.g;
+	}
+	else return c1.r < c2.r;
+}
 
 int main(int argc, char** argv)
 {
@@ -55,11 +86,14 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	// program main loop
+	typKompresji = kolor = paleta = 0;
+	paleta = 1;
+	dithering = 0;
+	counter = 0;
+
 	bool done = false;
 	while (!done)
 	{
-		// message processing loop
 		SDL_Event event;
 		while (SDL_PollEvent(&event))
 		{
@@ -67,29 +101,65 @@ int main(int argc, char** argv)
 			{
 				done = true;
 			}
+			else if (SDL_DROPFILE == event.type)
+			{
+				fileDir = event.drop.file;
+				//SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION,"File dropped on window",fileDir,window);
+				ladujBMP(fileDir, 0, 0);
+			}
 			else if (SDL_MOUSEBUTTONDOWN == event.type)
 			{
-				if(isMouseInButton(450,0,event.button.x,event.button.y))
-					Funkcja1();
-				if (isMouseInButton(450, 60, event.button.x, event.button.y))
-					Funkcja2();
-				if (isMouseInButton(450, 120, event.button.x, event.button.y))
-					Funkcja3();
-				if (isMouseInButton(450, 180, event.button.x, event.button.y))
-					zapiszBMP("nowy.bmp"); cout << "Zapis pliku poprawny" << endl;
-				if (isMouseInButton(450, 240, event.button.x, event.button.y))
-					done = true;;
+				if (isMouseInButton(0, event.button.x, event.button.y))
+				{
+					kolor = 0;
+					counter++;
+					ladujButton("6BitColorButtonH.bmp", width, 0);
+				}
+				if (isMouseInButton(60, event.button.x, event.button.y))
+				{
+					kolor = 1;
+					counter++;
+					ladujButton("6BitGrayButtonH.bmp", width, 60);
+				}
+				if (isMouseInButton(120, event.button.x, event.button.y))
+				{
+					dithering = 1;
+					counter++;
+					ladujButton("DitheringButtonH.bmp", width, 120);
+				}
+				if (isMouseInButton(180, event.button.x, event.button.y))
+				{
+					paleta = 0;
+					counter++;
+					ladujButton("DedPaletteH.bmp", width, 180);
+				}
+				if (isMouseInButton(240, event.button.x, event.button.y))
+				{
+					paleta = 1;
+					counter++;
+					ladujButton("DefPaletteH.bmp", width, 240);
+				}
+				if (counter >=2)
+				{
+					ladujButton("ConvertButton.bmp", 0, height);
+					if (event.button.y > height && event.button.y < height+60)
+					{
+						convertMsgBox();
+					}
+				}
 			}
 			else if (SDL_KEYDOWN == event.type)
 			{
 				if (event.key.keysym.sym == SDLK_ESCAPE)
 					done = true;
 				if (event.key.keysym.sym == SDLK_1)
-					Funkcja1();
+					saveBitmapToFile();
 				if (event.key.keysym.sym == SDLK_2)
-					Funkcja2();
+					readBitmapFromFile();
 				if (event.key.keysym.sym == SDLK_3)
-					Funkcja3();
+					//Funkcja3();
+				if (event.key.keysym.sym == SDLK_4)
+					//Funkcja4();
 				if (event.key.keysym.sym == SDLK_z)
 					zapiszBMP("nowy.bmp");
 				if (event.key.keysym.sym == SDLK_a)
@@ -120,12 +190,12 @@ int initSdl()
 	const int bitDepth = 32;
 
 	// create a new window
-	window = SDL_CreateWindow(tytul, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width+125, height, SDL_WINDOW_SHOWN);
+	window = SDL_CreateWindow(tytul, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width + 125, height+60, SDL_WINDOW_SHOWN);
 	screen = SDL_GetWindowSurface(window);
 	renderer = SDL_CreateRenderer(window, -1, 0);
 
 	initButtons();
-	
+
 
 	if (!screen)
 	{
@@ -222,23 +292,23 @@ void ladujBMP(char const* nazwa, int x, int y)
 
 		SDL_UpdateWindowSurface(window);
 
- 
+
 		SDL_FreeSurface(bmp);
 	}
 }
 
 void czyscEkran(Uint8 R, Uint8 G, Uint8 B)
 {
-	screen->w = 450;
 	SDL_FillRect(screen, 0, SDL_MapRGB(screen->format, R, G, B));
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderClear(renderer);
 	SDL_RenderPresent(renderer);
+	initButtons();
 }
 
-
-void Funkcja1()
+vector<int> Bit6Color()
 {
+	vector<int> p;
 	double wspolczynnikR, wspolczynnikG, wspolczynnikB;
 	SDL_Color pomocniczy;
 
@@ -247,20 +317,21 @@ void Funkcja1()
 		for (int y = 0; y < height; y++)
 		{
 			pomocniczy = getPixel(x, y);
-			wspolczynnikR = round(static_cast<double>(pomocniczy.r) / 85) * 85;
-			wspolczynnikG = round(static_cast<double>(pomocniczy.g) / 85) * 85;
-			wspolczynnikB = round(static_cast<double>(pomocniczy.b) / 85) * 85;
+			wspolczynnikR = round(static_cast<double>(pomocniczy.r) / 85);
+			wspolczynnikG = round(static_cast<double>(pomocniczy.g) / 85);
+			wspolczynnikB = round(static_cast<double>(pomocniczy.b) / 85);
 
-			setPixel(x, y, wspolczynnikR, wspolczynnikG, wspolczynnikB);
+			p.push_back(wspolczynnikR);
+			p.push_back(wspolczynnikG);
+			p.push_back(wspolczynnikB);
 		}
 	}
-
-
-	SDL_UpdateWindowSurface(window);
+	return p;
 }
 
-void Funkcja2()
+vector<int> Bit6GreyScale()
 {
+	vector<int> p;
 	double wspolczynnik;
 	SDL_Color pomocniczy;
 
@@ -271,17 +342,16 @@ void Funkcja2()
 			pomocniczy = getPixel(x, y);
 			wspolczynnik = static_cast<double>(pomocniczy.r + pomocniczy.g + pomocniczy.b) / 3;
 			wspolczynnik = round((wspolczynnik * 64) / 255);
-			wspolczynnik = (wspolczynnik * 255) / 64;
-
-			setPixel(x, y, wspolczynnik, wspolczynnik, wspolczynnik);
+			
+			p.push_back(wspolczynnik);
 		}
 	}
-
-	SDL_UpdateWindowSurface(window);
+	return p;
 }
 
-void Funkcja3()
+vector<int> Bit6Dithering()
 {
+	vector<int> p;
 	double wspolczynnikR, wspolczynnikG, wspolczynnikB, najblizszyR, najblizszyG, najblizszyB, eR, eG, eB;
 	double ** e_tab_r = new double*[width + 1];
 	double ** e_tab_g = new double*[width + 1];
@@ -342,17 +412,20 @@ void Funkcja3()
 			e_tab_g[x + 1][y + 1] = e_tab_g[x + 1][y + 1] + 1.0 / 16 * eG;
 			e_tab_b[x + 1][y + 1] = e_tab_b[x + 1][y + 1] + 1.0 / 16 * eB;
 
-			setPixel(x, y, najblizszyR * 85, najblizszyG * 85, najblizszyB * 85);
+			p.push_back(najblizszyR);
+			p.push_back(najblizszyG);
+			p.push_back(najblizszyB);
 		}
 	}
 
 
-	SDL_UpdateWindowSurface(window);
+	return p;
 }
 
 void zapiszBMP(char const * tytul)
 {
-	screen->w = 450; // zmieniam rozmiar obrazu dla zapisu ( obciecie przyciskow)
+	screen->w = width; // zmieniam rozmiar obrazu dla zapisu ( obciecie przyciskow)
+	screen->h =height;
 	if (SDL_SaveBMP(screen, tytul) < 0)
 		cout << "Nie udalo sie zapisac BMP " << endl;
 }
@@ -361,8 +434,8 @@ void zapiszBMP(char const * tytul)
 void wyzerujMaciez(double ** m, int x, int y)
 {
 	for (int i = 0; i < x; i++)
-	for (int j = 0; j < y; j++)
-		m[i][j] = 0;
+		for (int j = 0; j < y; j++)
+			m[i][j] = 0;
 }
 
 double min(double x, double y)
@@ -393,7 +466,7 @@ void ladujButton(const char *nazwa, int x, int y)
 		button.x = x;
 		button.y = y;
 		button.h = 25;
-		button.w = 75;
+		button.w = 125;
 
 
 		SDL_BlitSurface(bmp, 0, screen, &button);
@@ -405,15 +478,16 @@ void ladujButton(const char *nazwa, int x, int y)
 }
 void initButtons()
 {
-	ladujButton("6BitColorButton.bmp", 450, 0);
-	ladujButton("6BitGrayButton.bmp", 450, 60);
-	ladujButton("DitheringButton.bmp", 450, 120);
-	ladujButton("SaveButton.bmp", 450, 180);
-	ladujButton("QuitButton.bmp", 450, 240);
+	ladujButton("6BitColorButton.bmp", width, 0);
+	ladujButton("6BitGrayButton.bmp", width, 60);
+	ladujButton("DitheringButton.bmp", width, 120);
+	ladujButton("DedPalette.bmp", width, 180);
+	ladujButton("DefPalette.bmp", width, 240);
+	ladujButton("DirectoryButton.bmp", 0, height);
 }
-bool isMouseInButton(int bx, int by, int mx, int my)
+bool isMouseInButton(int by, int mx, int my)
 {
-	if (mx < bx+125 && mx > bx && my < by+60 && my>by)
+	if (mx < width + 125 && mx > width && my < by + 60 && my>by)
 	{
 		return true;
 	}
@@ -421,4 +495,312 @@ bool isMouseInButton(int bx, int by, int mx, int my)
 	{
 		return false;
 	}
+}
+void convertMsgBox()
+{
+	string s = fileDir;
+	//do the magic thing
+	if (s == "")
+	{
+		char *err = "FILE NOT LOADED!";
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "CRITICAL ERROR!", err, window);
+	}
+	else
+	{
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "File converted succesfully from BMP to S3g!", fileDir, window);
+	}
+}
+void saveBitmapToFile()
+{
+	int colorAmount = Colors64.size();
+	vector<int> pixels, compressedPixelsByteRun, compressedPixelsRLE;
+	ofstream file;
+	file.open("bitmap.s3g");
+
+	typKompresji = 0;
+
+	if (file.good())
+	{
+
+		if (kolor == 1)
+			pixels = Bit6GreyScale();
+		else if (kolor == 0)
+			if (dithering == 1)
+				pixels = Bit6Dithering();
+			else if (paleta == 0)
+				pixels = Bit6Dedicated();
+			else
+				pixels = Bit6Color();
+
+		compressedPixelsByteRun = ByteRunCompress(pixels, pixels.size());
+
+		file << "s3g" << " ";
+		file << compressedPixelsByteRun.size() << " ";
+		file << 10 + colorAmount * 3 << " ";
+		file << width << " ";
+		file << height << " ";
+		file << typKompresji << " ";
+		file << kolor << " ";
+		file << paleta << " ";
+		file << colorAmount << " ";
+		file << 10 << " ";
+
+		for (int i = 0; i < colorAmount; i++)
+			file << Colors64[i].r << " " << Colors64[i].g << " " << Colors64[i].b << " ";
+
+
+		for (int i = 0; i < compressedPixelsByteRun.size(); i++)
+			file << compressedPixelsByteRun[i] << " ";
+
+
+		file.close();
+	}
+}
+
+void readBitmapFromFile()
+{
+int color_amount, size_file, offset_file, pic_width, pic_height, type_comp, gray_scale, type_color, offset_color, pomocnicza;
+string id_file;
+vector<int> pixels, compressedPixels;
+vector<SDL_Color> paleta;
+SDL_Color temp;
+ifstream file;
+file.open("bitmap.s3g");
+
+
+if (file.good())
+{
+		file >> id_file;
+
+		if (id_file == "s3g")
+		{
+			file >> size_file;
+			file >> offset_file;
+			file >> pic_width;
+			file >> pic_height;
+			file >> type_comp;
+			file >> gray_scale;
+			file >> type_color;
+			file >> color_amount;
+			file >> offset_color;
+
+			for (int i = 0; i < color_amount; i++)
+			{
+				file >> temp.r; file >> temp.g; file >> temp.b;
+				paleta.push_back(temp);
+			}
+			
+			for (int i = 0; i < size_file; i++)
+			{
+				file >> pomocnicza;
+				compressedPixels.push_back(pomocnicza);
+			}
+
+			if(type_comp == 0)
+				pixels = ByteRunDecompress(compressedPixels);
+
+			Draw(pixels, type_comp, type_color, pic_width, pic_height);
+		
+		}
+
+
+		file.close();
+	}
+
+}
+
+vector<int> ByteRunCompress(vector<int> a, int length)
+{
+	vector<int> output;
+	int i = 0;
+
+	while (i < length)
+	{
+		//sekwencja powtarzajacych sie bajtow
+		if ((i < length - 1) &&
+			(a[i] == a[i + 1]))
+		{
+			//zmierz dlugosc sekwencji
+			int j = 0;
+			while ((i + j < length - 1) &&
+				(a[i + j] == a[i + j + 1]) &&
+				(j < 127))
+			{
+				j++;
+			}
+			//wypisz spakowana sekwencje
+			output.push_back(-j);
+			output.push_back(a[i + j]);
+			//przesun wskaznik o dlugosc sekwencji
+			i += (j + 1);
+		}
+		//sekwencja roznych bajtow
+		else
+		{
+			//zmierz dlugosc sekwencji
+			int j = 0;
+			while ((i + j < length - 1) &&
+				(a[i + j] != a[j + i + 1]) &&
+				(j < 128))
+			{
+				j++;
+			}
+			//dodaj jeszcze koncowke
+			if ((i + j == length - 1) &&
+				(j < 128))
+			{
+				j++;
+			}
+			//wypisz spakowana sekwencje
+			output.push_back((j - 1));
+			for (int k = 0; k<j; k++)
+			{
+				output.push_back(a[i + k]);
+			}
+			//przesun wskaznik o dlugosc sekwencji
+			i += j;
+		}
+	}
+	return output;
+}
+
+vector<int> ByteRunDecompress(vector<int> a)
+{
+	fstream in;
+	string x;
+	int temp;
+	vector<int> decompressedData;
+	int i = 0;
+	in.open("compressedBitmap.ggps", ios::in);
+
+	while (in.good())
+	{
+		in >> temp;
+		a.push_back(temp);
+	}
+
+	//dopoki wszystkie bajty nie sa zdekompresowane
+	while (i < a.size())
+	{
+		//kod pusty
+		if (a[i] == -128)
+		{
+			i++;
+		}
+		//sekwencja powtarzajacych sie bajtow
+		else if (a[i] < 0)
+		{
+			for (int j = 0; j<-(a[i] - 1); j++)
+			{
+				decompressedData.push_back((int)a[i + 1]);
+			}
+			i += 2;
+		}
+		//sekwencja roznych bajtow
+		else
+		{
+			for (int j = 0; j<(a[i] + 1) && i + 1 + j < a.size(); j++)
+			{
+				decompressedData.push_back((int)a[i + 1 + j]);
+			}
+			i += a[i] + 2;
+		}
+	}
+
+	in.close();
+
+
+	return decompressedData;
+
+}
+
+vector<int> Bit6Dedicated()
+{
+	std::map<SDL_Color, int> Colors; // mapa wszystkich kolorów jakie wystêpuj¹ <kolor, liczba wyst¹pieñ>
+	vector<int> p;
+	const int nbOfColors = 64;  // mogê ³atwo zmieniæ ile najczêstszych koloró biorê pod uwagê
+
+								// przejechanie po wszystkich pixelach w celu wyszukania wszystkich kolorów
+	for (int i = 0; i < width; ++i) {
+		for (int j = 0; j < height; ++j) {
+			SDL_Color currentColor = getPixel(i, j);
+
+			auto search = Colors.find(currentColor); // szukam czy kolor ju¿ jest w mapie
+			if (search != Colors.end()) search->second += 1; // je¿eli jest to zwiêkszam jego wartoœæ wyst¹pieñ
+			else Colors.emplace(currentColor, 1); // je¿eli nie ma to dodajê go
+		}
+	}
+
+	// wyszukanie 64 najczêstszych kolorów
+	for (int k = 0; k < nbOfColors; ++k) {
+		int max = 0;  // zmienna do wyszukiwania koloru o maksymalnej iloœci wyst¹pieñ
+		SDL_Color maxColor; // kolor który aktualnie ma max iloœæ wyst¹pieñ spoœród wszystkich kolorów w mapie
+
+							// przelatujê wszystkie kolory ¿eby znaleŸæ max
+		for (auto &c : Colors) {
+			if (c.second > max) {
+				max = c.second;
+				maxColor = c.first;
+			}
+		}
+
+		Colors64.push_back(maxColor);  // wrzucam max do wektora
+		Colors.erase(maxColor); // i usuwam go z mapy
+
+								// jeœli mapa jest ju¿ pusta bo np. obrazek ma mniej ni¿ 64 kolory to wychodzê z pêtli
+		if (Colors.empty()) break;
+	}
+
+	// zamiana kolorów na ekranie na te 64 najczêœciej wystêpuj¹ce
+	for (int x = 0; x < width; ++x) {
+		for (int y = 0; y < height; ++y) {
+			SDL_Color currentColor = getPixel(x, y);  // kolor aktualnie rozpatrywanego pixela
+
+			int bestColorID = 0;  // pozycja w wektorze Colors64 najbli¿szego koloru, tego który bêdê szukaæ
+			double currAvDiff;  // aktualna œrednia ró¿nica pomiêdzy kolorami
+			double minAvDiff = 255.0;  //  minimalne œrednia ró¿nica pomiêdzy kolorami
+			double rDiff, gDiff, bDiff;  // ró¿nice pomiêdzy sk³adowymi
+
+										 // przelatujê ca³y wektor w poszukiwaniu najbli¿szego koloru
+			for (int i = 0; i < Colors64.size(); ++i) {
+				// dla ka¿dego koloru z wektora wyliczam ró¿nicê pomiêdzy nim a currentColor
+				rDiff = abs(currentColor.r - Colors64[i].r);
+				gDiff = abs(currentColor.g - Colors64[i].g);
+				bDiff = abs(currentColor.b - Colors64[i].b);
+				currAvDiff = (rDiff + gDiff + bDiff) / 3.0; // obliczam œredni¹ aktualn¹ ró¿nicê
+															// jeœli jest mniejsza to ustawiam j¹ jako minimaln¹ i zapamiêtujê pozycjê tego koloru w wektorze
+				if (currAvDiff < minAvDiff) {
+					minAvDiff = currAvDiff;
+					bestColorID = i;
+				}
+			}
+
+			// ustawiam kolor na znaleziony najbli¿szy
+			p.push_back(bestColorID);		}
+	}
+	return p;
+}
+
+void Draw(vector<int> pixels, bool c, bool p, int w, int h)
+{
+	int i = 0;
+	if (c == 1)
+	{
+		for(int x = 0; x < w; x++)
+			for (int y = 0; y < h; y++)
+			{
+				setPixel(x, y, pixels[i] * 255 / 64, pixels[i] * 255 / 64, pixels[i] * 255 / 64);
+				i++;
+			}
+	}
+	else if (p == 1)
+	{
+		for (int x = 0; x < w; x++)
+			for (int y = 0; y < h; y++)
+			{
+				setPixel(x, y, pixels[i] * 85, pixels[i+1] * 85, pixels[i+2] * 85);
+				i += 3;
+			}
+	}
+	SDL_UpdateWindowSurface(window);
 }

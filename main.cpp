@@ -144,6 +144,7 @@ int main(int argc, char** argv)
 					ladujButton("ConvertButton.bmp", 0, height);
 					if (event.button.y > height && event.button.y < height+60)
 					{
+						//event po nacisniesicu przycisku convert =]
 						convertMsgBox();
 					}
 				}
@@ -190,7 +191,7 @@ int initSdl()
 	const int bitDepth = 32;
 
 	// create a new window
-	window = SDL_CreateWindow(tytul, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width + 125, height+60, SDL_WINDOW_SHOWN);
+	window = SDL_CreateWindow(tytul, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width + 125, height+60, SDL_WINDOW_SHOWN); // dodaje w i h buttonow 
 	screen = SDL_GetWindowSurface(window);
 	renderer = SDL_CreateRenderer(window, -1, 0);
 

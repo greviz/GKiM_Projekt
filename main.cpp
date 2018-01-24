@@ -107,31 +107,31 @@ int main(int argc, char** argv)
 				if (isMouseInButton(0, event.button.x, event.button.y))
 				{
 					kolor = 0;
-					ladujButton("6BitColorButtonH.bmp", width, 0);
+					ladujButton("Buttons/6BitColorButtonH.bmp", width, 0);
 				}
 				if (isMouseInButton(60, event.button.x, event.button.y))
 				{
 					kolor = 1;
-					ladujButton("6BitGrayButtonH.bmp", width, 60);
+					ladujButton("Buttons/6BitGrayButtonH.bmp", width, 60);
 				}
 				if (isMouseInButton(120, event.button.x, event.button.y))
 				{
 					dithering = 1;
-					ladujButton("DitheringButtonH.bmp", width, 120);
+					ladujButton("Buttons/DitheringButtonH.bmp", width, 120);
 				}
 				if (isMouseInButton(180, event.button.x, event.button.y))
 				{
 					paleta = 0;
-					ladujButton("DedPaletteH.bmp", width, 180);
+					ladujButton("Buttons/DedPaletteH.bmp", width, 180);
 				}
 				if (isMouseInButton(240, event.button.x, event.button.y))
 				{
 					paleta = 1;
-					ladujButton("DefPaletteH.bmp", width, 240);
+					ladujButton("Buttons/DefPaletteH.bmp", width, 240);
 				}
 				if (counter >=1)
 				{
-					ladujButton("ConvertButton.bmp", 0, height);
+					ladujButton("Buttons/ConvertButton.bmp", 0, height);
 					if (event.button.y > height && event.button.y < height+60)
 					{
 						saveBitmapToFile();
@@ -143,19 +143,6 @@ int main(int argc, char** argv)
 			{
 				if (event.key.keysym.sym == SDLK_ESCAPE)
 					done = true;
-				if (event.key.keysym.sym == SDLK_1)
-					saveBitmapToFile();
-				if (event.key.keysym.sym == SDLK_2)
-					readBitmapFromFile();
-
-				if (event.key.keysym.sym == SDLK_z)
-					zapiszBMP("nowy.bmp");
-				if (event.key.keysym.sym == SDLK_a)
-					ladujBMP("obrazek1.bmp", 0, 0);
-				if (event.key.keysym.sym == SDLK_s)
-					ladujBMP("obrazek2.bmp", 0, 0);
-				if (event.key.keysym.sym == SDLK_d)
-					ladujBMP("obrazek3.bmp", 0, 0);
 				if (event.key.keysym.sym == SDLK_b)
 					czyscEkran(0, 0, 0);
 			}
@@ -480,12 +467,12 @@ void ladujButton(const char *nazwa, int x, int y)
 }
 void initButtons()
 {
-	ladujButton("6BitColorButton.bmp", width, 0);
-	ladujButton("6BitGrayButton.bmp", width, 60);
-	ladujButton("DitheringButton.bmp", width, 120);
-	ladujButton("DedPalette.bmp", width, 180);
-	ladujButton("DefPalette.bmp", width, 240);
-	ladujButton("DirectoryButton.bmp", 0, height);
+	ladujButton("Buttons/6BitColorButton.bmp", width, 0);
+	ladujButton("Buttons/6BitGrayButton.bmp", width, 60);
+	ladujButton("Buttons/DitheringButton.bmp", width, 120);
+	ladujButton("Buttons/DedPalette.bmp", width, 180);
+	ladujButton("Buttons/DefPalette.bmp", width, 240);
+	ladujButton("Buttons/DirectoryButton.bmp", 0, height);
 }
 bool isMouseInButton(int by, int mx, int my)
 {

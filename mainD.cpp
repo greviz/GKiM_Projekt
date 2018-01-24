@@ -88,7 +88,7 @@ int main(int argc, char** argv)
 			{
 				fileDir = event.drop.file;
 				counter++;
-				ladujButton("ConvertButton.bmp", 0, height);
+				ladujButton("Buttons/ConvertButton.bmp", 0, height);
 				SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION,"File dropped on window succesfuly",fileDir,window);	
 			}
 			else if (SDL_MOUSEBUTTONDOWN == event.type)
@@ -255,7 +255,7 @@ void ladujButton(const char *nazwa, int x, int y)
 }
 void initButtons()
 {
-	ladujButton("DirectoryButton.bmp", 0, height);
+	ladujButton("Buttons/DirectoryButton.bmp", 0, height);
 }
 bool isMouseInButton(int by, int mx, int my)
 {

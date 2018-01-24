@@ -27,12 +27,11 @@ SDL_Surface *screen;
 SDL_Renderer * renderer;
 int width = 450;
 int height = 300;
-char const* tytul = "S3g kompresor";
+char const* tytul = "S3g Kompresor";
 int typKompresji, kolor, paleta, dithering;
 int counter;
 char * fileDir;  // sciezka do pliku
 vector<SDL_Color> Colors64; // tablica najczêstszych 64 kolorów <kolor>
-
 
 
 int initSdl();
@@ -434,7 +433,6 @@ void zapiszBMP(char const * tytul)
 		cout << "Nie udalo sie zapisac BMP " << endl;
 }
 
-
 void wyzerujMaciez(double ** m, int x, int y)
 {
 	for (int i = 0; i < x; i++)
@@ -469,7 +467,7 @@ void ladujButton(const char *nazwa, int x, int y)
 		SDL_Rect button;
 		button.x = x;
 		button.y = y;
-		button.h = 25;
+		button.h = 60;
 		button.w = 125;
 
 
@@ -503,7 +501,6 @@ bool isMouseInButton(int by, int mx, int my)
 void convertMsgBox()
 {
 	string s = fileDir;
-	//do the magic thing
 	if (s == "")
 	{
 		char err[30] = "FILE NOT LOADED!";
@@ -562,56 +559,52 @@ void saveBitmapToFile()
 
 void readBitmapFromFile()
 {
-int color_amount, size_file, offset_file, pic_width, pic_height, type_comp, gray_scale, type_color, offset_color, pomocnicza;
-string id_file;
-vector<int> pixels, compressedPixels;
-vector<SDL_Color> paleta;
-SDL_Color temp;
-ifstream file;
-file.open("converted_file.s3g");
+	int color_amount, size_file, offset_file, pic_width, pic_height, type_comp, gray_scale, type_color, offset_color, pomocnicza;
+	string id_file;
+	vector<int> pixels, compressedPixels;
+	vector<SDL_Color> paleta;
+	SDL_Color temp;
+	ifstream file;
+	file.open("converted_file.s3g");
 
 
-if (file.good())
-{
-		file >> id_file;
+	if (file.good())
+	{
+			file >> id_file;
 
-		if (id_file == "s3g")
-		{
-			file >> size_file;
-			file >> offset_file;
-			file >> pic_width;
-			file >> pic_height;
-			file >> type_comp;
-			file >> gray_scale;
-			file >> type_color;
-			file >> color_amount;
-			file >> offset_color;
-
-			for (int i = 0; i < color_amount; i++)
+			if (id_file == "s3g")
 			{
-				file >> pomocnicza; temp.r = pomocnicza;
-				file >> pomocnicza; temp.g = pomocnicza;
-				file >> pomocnicza; temp.b = pomocnicza;
-				paleta.push_back(temp);
-			}
+				file >> size_file;
+				file >> offset_file;
+				file >> pic_width;
+				file >> pic_height;
+				file >> type_comp;
+				file >> gray_scale;
+				file >> type_color;
+				file >> color_amount;
+				file >> offset_color;
+
+				for (int i = 0; i < color_amount; i++)
+				{
+					file >> pomocnicza; temp.r = pomocnicza;
+					file >> pomocnicza; temp.g = pomocnicza;
+					file >> pomocnicza; temp.b = pomocnicza;
+					paleta.push_back(temp);
+				}
 			
-			for (int i = 0; i < size_file; i++)
-			{
-				file >> pomocnicza;
-				compressedPixels.push_back(pomocnicza);
+				for (int i = 0; i < size_file; i++)
+				{
+					file >> pomocnicza;
+					compressedPixels.push_back(pomocnicza);
+				}
+
+				if(type_comp == 0)
+					pixels = ByteRunDecompress(compressedPixels);
+
+				Draw(pixels, gray_scale, type_color, pic_width, pic_height, paleta);
 			}
-
-			if(type_comp == 0)
-				pixels = ByteRunDecompress(compressedPixels);
-
-			Draw(pixels, gray_scale, type_color, pic_width, pic_height, paleta);
-		
-		}
-
-
-		file.close();
+			file.close();
 	}
-
 }
 
 vector<int> ByteRunCompress(vector<int> a, int length)
@@ -714,9 +707,7 @@ vector<int> ByteRunDecompress(vector<int> a)
 
 	in.close();
 
-
 	return decompressedData;
-
 }
 
 vector<int> Bit6Dedicated()

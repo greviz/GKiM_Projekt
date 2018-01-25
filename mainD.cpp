@@ -343,7 +343,7 @@ vector<int> ByteRunDecompress(vector<int> a)
 	int temp;
 	vector<int> decompressedData;
 	int i = 0;
-	in.open("compressedBitmap.ggps", ios::in);
+	in.open("converted_file.s3g", ios::in);
 
 	while (in.good())
 	{

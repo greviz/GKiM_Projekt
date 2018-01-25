@@ -30,6 +30,7 @@ int height = 300;
 char const* tytul = "S3g Kompresor";
 int typKompresji, kolor, paleta, dithering;
 int counter;
+bool isPressedColor, isPressedGray, isPressedDithering, isPressedDedicated, isPressedDefault;
 char * fileDir;  // sciezka do pliku
 vector<SDL_Color> Colors64; // tablica najczêstszych 64 kolorów <kolor>
 
@@ -80,6 +81,8 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
+	isPressedColor = isPressedDedicated = isPressedDefault = isPressedDithering = isPressedGray = false;
+
 	kolor = 0;
 	paleta = 1;
 	dithering = 0;
@@ -106,28 +109,68 @@ int main(int argc, char** argv)
 			{
 				if (isMouseInButton(0, event.button.x, event.button.y))
 				{
-					kolor = 0;
-					ladujButton("Buttons/6BitColorButtonH.bmp", width, 0);
+					if (isPressedColor == true)
+					{
+						kolor = 0; isPressedColor = false;
+						ladujButton("Buttons/6BitColorButton.bmp", width, 0);
+					}
+					else
+					{
+						kolor = 0; isPressedColor = true;
+						ladujButton("Buttons/6BitColorButtonH.bmp", width, 0);
+					}
 				}
 				if (isMouseInButton(60, event.button.x, event.button.y))
 				{
-					kolor = 1;
-					ladujButton("Buttons/6BitGrayButtonH.bmp", width, 60);
+					if (isPressedGray == true)
+					{
+						kolor = 0; isPressedGray = false;
+						ladujButton("Buttons/6BitGrayButton.bmp", width, 60);
+					}
+					else
+					{
+						kolor = 1; isPressedGray = true;
+						ladujButton("Buttons/6BitGrayButtonH.bmp", width, 60);
+					}
 				}
 				if (isMouseInButton(120, event.button.x, event.button.y))
 				{
-					dithering = 1;
-					ladujButton("Buttons/DitheringButtonH.bmp", width, 120);
+					if (isPressedDithering == true)
+					{
+						dithering = 0; isPressedDithering = false;
+						ladujButton("Buttons/DitheringButton.bmp", width, 120);
+					}
+					else
+					{
+						dithering = 1; isPressedDithering = true;
+						ladujButton("Buttons/DitheringButtonH.bmp", width, 120); 
+					}
 				}
 				if (isMouseInButton(180, event.button.x, event.button.y))
 				{
-					paleta = 0;
-					ladujButton("Buttons/DedPaletteH.bmp", width, 180);
+					if (isPressedDedicated == true)
+					{
+						paleta = 1; isPressedDedicated = false;
+						ladujButton("Buttons/DedPalette.bmp",width,180);
+					}
+					else
+					{
+						paleta = 0; isPressedDedicated = true;
+						ladujButton("Buttons/DedPaletteH.bmp", width, 180);
+					}
 				}
 				if (isMouseInButton(240, event.button.x, event.button.y))
 				{
-					paleta = 1;
-					ladujButton("Buttons/DefPaletteH.bmp", width, 240);
+					if (isPressedDefault == true)
+					{
+						paleta = 1; isPressedDefault = false;
+						ladujButton("Buttons/DefPalette.bmp", width, 240);
+					}
+					else
+					{
+						paleta = 1; isPressedDefault = true;
+						ladujButton("Buttons/DefPaletteH.bmp", width, 240);
+					}
 				}
 				if (counter >=1)
 				{
@@ -145,6 +188,10 @@ int main(int argc, char** argv)
 					done = true;
 				if (event.key.keysym.sym == SDLK_b)
 					czyscEkran(0, 0, 0);
+				if (event.key.keysym.sym == SDLK_1)
+				{
+					readBitmapFromFile();
+				}
 			}
 		} // end of message processing
 	} // end main loop
@@ -552,7 +599,7 @@ void readBitmapFromFile()
 	vector<SDL_Color> paleta;
 	SDL_Color temp;
 	ifstream file;
-	file.open("converted_file.s3g");
+	file.open(fileDir);
 
 
 	if (file.good())
@@ -656,7 +703,7 @@ vector<int> ByteRunDecompress(vector<int> a)
 	int temp;
 	vector<int> decompressedData;
 	int i = 0;
-	in.open("compressedBitmap.ggps", ios::in);
+	in.open("converted_file.s3g", ios::in);
 
 	while (in.good())
 	{

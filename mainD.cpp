@@ -37,14 +37,14 @@ vector<SDL_Color> Colors64; // tablica najczêstszych 64 kolorów <kolor>
 int initSdl();
 
 void Draw(vector<int> pixels, bool c, bool p, int w, int h, vector<SDL_Color> paleta);
-void czyscEkran(Uint8 R, Uint8 G, Uint8 B);
 void zapiszBMP(char const * nazwa);
 void ladujButton(char const* nazwa, int x, int y);
 void initButtons();
 bool isMouseInButton(int by, int mx, int my);
 void convertMsgBox();
 void readBitmapFromFile();
-vector<int> ByteRunDecompress(vector<int>);
+vector<int> ByteRunDecompress(vector<int> a);
+vector<int> RLEdecompress(vector<int> str);
 
 bool operator ==(const SDL_Color &c1, const SDL_Color &c2)
 {
@@ -89,7 +89,7 @@ int main(int argc, char** argv)
 				fileDir = event.drop.file;
 				counter++;
 				ladujButton("Buttons/ConvertButton.bmp", 0, height);
-				SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION,"File dropped on window succesfuly",fileDir,window);	
+				SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "File dropped on window succesfuly", fileDir, window);
 			}
 			else if (SDL_MOUSEBUTTONDOWN == event.type)
 			{
@@ -107,8 +107,7 @@ int main(int argc, char** argv)
 			{
 				if (event.key.keysym.sym == SDLK_ESCAPE)
 					done = true;
-				if (event.key.keysym.sym == SDLK_b)
-					czyscEkran(0, 0, 0);
+
 			}
 		} // end of message processing
 	} // end main loop
@@ -213,14 +212,6 @@ void setPixel(int x, int y, Uint8 R, Uint8 G, Uint8 B)
 	/* update the screen (aka double buffering) */
 }
 
-void czyscEkran(Uint8 R, Uint8 G, Uint8 B)
-{
-	SDL_FillRect(screen, 0, SDL_MapRGB(screen->format, R, G, B));
-	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-	SDL_RenderClear(renderer);
-	SDL_RenderPresent(renderer);
-	initButtons();
-}
 
 void zapiszBMP(char const * tytul)
 {
@@ -329,6 +320,8 @@ void readBitmapFromFile()
 
 			if (type_comp == 0)
 				pixels = ByteRunDecompress(compressedPixels);
+			else
+				pixels = RLEdecompress(compressedPixels);
 
 			Draw(pixels, gray_scale, type_color, pic_width, pic_height, paleta);
 		}
@@ -389,73 +382,36 @@ vector<int> ByteRunDecompress(vector<int> a)
 	return decompressedData;
 }
 
-vector<int> Bit6Dedicated()
+vector<int> RLEdecompress(vector<int> str)
 {
-	std::map<SDL_Color, int> Colors; // mapa wszystkich kolorów jakie wystêpuj¹ <kolor, liczba wyst¹pieñ>
-	vector<int> p;
-	const int nbOfColors = 64;  // mogê ³atwo zmieniæ ile najczêstszych koloró biorê pod uwagê
-
-	// przejechanie po wszystkich pixelach w celu wyszukania wszystkich kolorów
-	for (int i = 0; i < width; ++i) {
-		for (int j = 0; j < height; ++j) {
-			SDL_Color currentColor = getPixel(i, j);
-
-			auto search = Colors.find(currentColor); // szukam czy kolor ju¿ jest w mapie
-			if (search != Colors.end()) search->second += 1; // je¿eli jest to zwiêkszam jego wartoœæ wyst¹pieñ
-			else Colors.emplace(currentColor, 1); // je¿eli nie ma to dodajê go
-		}
-	}
-
-	// wyszukanie 64 najczêstszych kolorów
-	for (int k = 0; k < nbOfColors; ++k) {
-		int max = 0;  // zmienna do wyszukiwania koloru o maksymalnej iloœci wyst¹pieñ
-		SDL_Color maxColor; // kolor który aktualnie ma max iloœæ wyst¹pieñ spoœród wszystkich kolorów w mapie
-
-		// przelatujê wszystkie kolory ¿eby znaleŸæ max
-		for (auto &c : Colors) {
-			if (c.second > max) {
-				max = c.second;
-				maxColor = c.first;
-			}
-		}
-
-		Colors64.push_back(maxColor);  // wrzucam max do wektora
-		Colors.erase(maxColor); // i usuwam go z mapy
-
-		// jeœli mapa jest ju¿ pusta bo np. obrazek ma mniej ni¿ 64 kolory to wychodzê z pêtli
-		if (Colors.empty()) break;
-	}
-
-	// zamiana kolorów na ekranie na te 64 najczêœciej wystêpuj¹ce
-	for (int x = 0; x < width; ++x) {
-		for (int y = 0; y < height; ++y) {
-			SDL_Color currentColor = getPixel(x, y);  // kolor aktualnie rozpatrywanego pixela
-
-			int bestColorID = 0;  // pozycja w wektorze Colors64 najbli¿szego koloru, tego który bêdê szukaæ
-			double currAvDiff;  // aktualna œrednia ró¿nica pomiêdzy kolorami
-			double minAvDiff = 255.0;  //  minimalne œrednia ró¿nica pomiêdzy kolorami
-			double rDiff, gDiff, bDiff;  // ró¿nice pomiêdzy sk³adowymi
-
-			// przelatujê ca³y wektor w poszukiwaniu najbli¿szego koloru
-			for (int i = 0; i < Colors64.size(); ++i) {
-				// dla ka¿dego koloru z wektora wyliczam ró¿nicê pomiêdzy nim a currentColor
-				rDiff = abs(currentColor.r - Colors64[i].r);
-				gDiff = abs(currentColor.g - Colors64[i].g);
-				bDiff = abs(currentColor.b - Colors64[i].b);
-				currAvDiff = (rDiff + gDiff + bDiff) / 3.0; // obliczam œredni¹ aktualn¹ ró¿nicê
-				// jeœli jest mniejsza to ustawiam j¹ jako minimaln¹ i zapamiêtujê pozycjê tego koloru w wektorze
-				if (currAvDiff < minAvDiff) {
-					minAvDiff = currAvDiff;
-					bestColorID = i;
+	int i = 0;
+	vector<int> output;
+	while (i < str.size())
+	{
+		if (str[i] == 0)
+		{
+			i++;
+			if (i < str.size())
+			{
+				i++;
+				for (int j = i - 1; i <= str[j] + j && i < str.size(); i++)
+				{
+					output.push_back(str[i]);
 				}
 			}
-
-			// ustawiam kolor na znaleziony najbli¿szy
-			p.push_back(bestColorID);
+		}
+		else
+		{
+			i++;
+			for (int j = 0; j < str[i - 1] && i < str.size(); j++)
+				output.push_back(str[i]);
+			i++;
 		}
 	}
-	return p;
+
+	return output;
 }
+
 
 void Draw(vector<int> pixels, bool c, bool p, int w, int h, vector<SDL_Color> paleta)
 {
@@ -463,29 +419,29 @@ void Draw(vector<int> pixels, bool c, bool p, int w, int h, vector<SDL_Color> pa
 	if (c == 1)
 	{
 		for (int x = 0; x < w; x++)
-		for (int y = 0; y < h; y++)
-		{
-			setPixel(x, y, pixels[i] * 255 / 64, pixels[i] * 255 / 64, pixels[i] * 255 / 64);
-			i++;
-		}
+			for (int y = 0; y < h; y++)
+			{
+				setPixel(x, y, pixels[i] * 255 / 64, pixels[i] * 255 / 64, pixels[i] * 255 / 64);
+				i++;
+			}
 	}
 	else if (p == 1)
 	{
 		for (int x = 0; x < w; x++)
-		for (int y = 0; y < h; y++)
-		{
-			setPixel(x, y, pixels[i] * 85, pixels[i + 1] * 85, pixels[i + 2] * 85);
-			i += 3;
-		}
+			for (int y = 0; y < h; y++)
+			{
+				setPixel(x, y, pixels[i] * 85, pixels[i + 1] * 85, pixels[i + 2] * 85);
+				i += 3;
+			}
 	}
 	else if (p == 0)
 	{
 		for (int x = 0; x < w; x++)
-		for (int y = 0; y < h; y++)
-		{
-			setPixel(x, y, paleta[pixels[i]].r, paleta[pixels[i]].g, paleta[pixels[i]].b);
-			i++;
-		}
+			for (int y = 0; y < h; y++)
+			{
+				setPixel(x, y, paleta[pixels[i]].r, paleta[pixels[i]].g, paleta[pixels[i]].b);
+				i++;
+			}
 	}
 	SDL_UpdateWindowSurface(window);
 }

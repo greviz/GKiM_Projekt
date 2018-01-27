@@ -42,9 +42,7 @@ vector<int> Bit6GreyScale();
 vector<int> Bit6Dithering();
 vector<int> Bit6Dedicated();
 
-void Draw(vector<int> pixels, bool c, bool p, int w, int h, vector<SDL_Color> paleta);
 void ladujBMP(char const* nazwa, int x, int y);
-void czyscEkran(Uint8 R, Uint8 G, Uint8 B);
 void zapiszBMP(char const * nazwa);
 void wyzerujMaciez(double ** m, int x, int y);
 double min(double x, double y);
@@ -54,9 +52,8 @@ void initButtons();
 bool isMouseInButton(int by, int mx, int my);
 void convertMsgBox();
 void saveBitmapToFile();
-void readBitmapFromFile();
 vector<int> ByteRunCompress(vector<int> a, int length);
-vector<int> ByteRunDecompress(vector<int>);
+vector<int> RLEcompress(vector<int> input);
 
 bool operator ==(const SDL_Color &c1, const SDL_Color &c2)
 {
@@ -143,7 +140,7 @@ int main(int argc, char** argv)
 					else
 					{
 						dithering = 1; isPressedDithering = true;
-						ladujButton("Buttons/DitheringButtonH.bmp", width, 120); 
+						ladujButton("Buttons/DitheringButtonH.bmp", width, 120);
 					}
 				}
 				if (isMouseInButton(180, event.button.x, event.button.y))
@@ -151,7 +148,7 @@ int main(int argc, char** argv)
 					if (isPressedDedicated == true)
 					{
 						paleta = 1; isPressedDedicated = false;
-						ladujButton("Buttons/DedPalette.bmp",width,180);
+						ladujButton("Buttons/DedPalette.bmp", width, 180);
 					}
 					else
 					{
@@ -172,10 +169,10 @@ int main(int argc, char** argv)
 						ladujButton("Buttons/DefPaletteH.bmp", width, 240);
 					}
 				}
-				if (counter >=1)
+				if (counter >= 1)
 				{
 					ladujButton("Buttons/ConvertButton.bmp", 0, height);
-					if (event.button.y > height && event.button.y < height+60)
+					if (event.button.y > height && event.button.y < height + 60)
 					{
 						saveBitmapToFile();
 						convertMsgBox();
@@ -186,12 +183,6 @@ int main(int argc, char** argv)
 			{
 				if (event.key.keysym.sym == SDLK_ESCAPE)
 					done = true;
-				if (event.key.keysym.sym == SDLK_b)
-					czyscEkran(0, 0, 0);
-				if (event.key.keysym.sym == SDLK_1)
-				{
-					readBitmapFromFile();
-				}
 			}
 		} // end of message processing
 	} // end main loop
@@ -212,7 +203,7 @@ int initSdl()
 	const int bitDepth = 32;
 
 	// create a new window
-	window = SDL_CreateWindow(tytul, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width + 125, height+60, SDL_WINDOW_SHOWN); // dodaje w i h buttonow 
+	window = SDL_CreateWindow(tytul, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width + 125, height + 60, SDL_WINDOW_SHOWN); // dodaje w i h buttonow 
 	screen = SDL_GetWindowSurface(window);
 	renderer = SDL_CreateRenderer(window, -1, 0);
 
@@ -311,7 +302,7 @@ void ladujBMP(char const* nazwa, int x, int y)
 
 		width = bmp->w;
 		height = bmp->h;
-		SDL_SetWindowSize(window, width + 125 , height + 60);
+		SDL_SetWindowSize(window, width + 125, height + 60);
 		screen = SDL_GetWindowSurface(window);
 		initButtons();
 
@@ -324,14 +315,6 @@ void ladujBMP(char const* nazwa, int x, int y)
 	}
 }
 
-void czyscEkran(Uint8 R, Uint8 G, Uint8 B)
-{
-	SDL_FillRect(screen, 0, SDL_MapRGB(screen->format, R, G, B));
-	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-	SDL_RenderClear(renderer);
-	SDL_RenderPresent(renderer);
-	initButtons();
-}
 
 vector<int> Bit6Color()
 {
@@ -369,7 +352,7 @@ vector<int> Bit6GreyScale()
 			pomocniczy = getPixel(x, y);
 			wspolczynnik = static_cast<double>(pomocniczy.r + pomocniczy.g + pomocniczy.b) / 3;
 			wspolczynnik = round((wspolczynnik * 64) / 255);
-			
+
 			p.push_back(wspolczynnik);
 		}
 	}
@@ -462,7 +445,7 @@ vector<int> Bit6Dithering()
 void zapiszBMP(char const * tytul)
 {
 	screen->w = width; // zmieniam rozmiar obrazu dla zapisu ( obciecie przyciskow)
-	screen->h =height;
+	screen->h = height;
 	if (SDL_SaveBMP(screen, tytul) < 0)
 		cout << "Nie udalo sie zapisac BMP " << endl;
 }
@@ -551,8 +534,6 @@ void saveBitmapToFile()
 	ofstream file;
 	file.open("converted_file.s3g");
 
-	typKompresji = 0;
-
 	if (file.good())
 	{
 
@@ -567,6 +548,12 @@ void saveBitmapToFile()
 				pixels = Bit6Color();
 
 		compressedPixelsByteRun = ByteRunCompress(pixels, pixels.size());
+		compressedPixelsRLE = RLEcompress(pixels);
+
+		if (compressedPixelsByteRun.size() < compressedPixelsRLE.size())
+			typKompresji = 0;
+		else
+			typKompresji = 1;
 
 		file << "s3g" << " ";
 		file << pixels.size() << " ";
@@ -582,64 +569,19 @@ void saveBitmapToFile()
 		for (int i = 0; i < Colors64.size(); i++)
 			file << static_cast<int>(Colors64[i].r) << " " << static_cast<int>(Colors64[i].g) << " " << static_cast<int>(Colors64[i].b) << " ";
 
-
-		for (int i = 0; i < compressedPixelsByteRun.size(); i++)
-			file << compressedPixelsByteRun[i] << " ";
+		if(typKompresji == 0)
+			for (int i = 0; i < compressedPixelsByteRun.size(); i++)
+				file << compressedPixelsByteRun[i] << " ";
+		else
+			for (int i = 0; i < compressedPixelsRLE.size(); i++)
+				file << compressedPixelsRLE[i] << " ";
 
 
 		file.close();
 	}
 }
 
-void readBitmapFromFile()
-{
-	int color_amount, size_file, offset_file, pic_width, pic_height, type_comp, gray_scale, type_color, offset_color, pomocnicza;
-	string id_file;
-	vector<int> pixels, compressedPixels;
-	vector<SDL_Color> paleta;
-	SDL_Color temp;
-	ifstream file;
-	file.open(fileDir);
 
-
-	if (file.good())
-	{
-			file >> id_file;
-
-			if (id_file == "s3g")
-			{
-				file >> size_file;
-				file >> offset_file;
-				file >> pic_width;
-				file >> pic_height;
-				file >> type_comp;
-				file >> gray_scale;
-				file >> type_color;
-				file >> color_amount;
-				file >> offset_color;
-
-				for (int i = 0; i < color_amount; i++)
-				{
-					file >> pomocnicza; temp.r = pomocnicza;
-					file >> pomocnicza; temp.g = pomocnicza;
-					file >> pomocnicza; temp.b = pomocnicza;
-					paleta.push_back(temp);
-				}
-			
-				for (int i = 0; i < size_file; i++)
-				{
-					file >> pomocnicza;
-					compressedPixels.push_back(pomocnicza);
-				}
-
-				if(type_comp == 0)
-					pixels = ByteRunDecompress(compressedPixels);
-
-				Draw(pixels, gray_scale, type_color, pic_width, pic_height, paleta);
-			}
-			file.close();
-	}
-}
 
 vector<int> ByteRunCompress(vector<int> a, int length)
 {
@@ -696,53 +638,6 @@ vector<int> ByteRunCompress(vector<int> a, int length)
 	return output;
 }
 
-vector<int> ByteRunDecompress(vector<int> a)
-{
-	fstream in;
-	string x;
-	int temp;
-	vector<int> decompressedData;
-	int i = 0;
-	in.open("converted_file.s3g", ios::in);
-
-	while (in.good())
-	{
-		in >> temp;
-		a.push_back(temp);
-	}
-
-	//dopoki wszystkie bajty nie sa zdekompresowane
-	while (i < a.size())
-	{
-		//kod pusty
-		if (a[i] == -128)
-		{
-			i++;
-		}
-		//sekwencja powtarzajacych sie bajtow
-		else if (a[i] < 0)
-		{
-			for (int j = 0; j<-(a[i] - 1); j++)
-			{
-				decompressedData.push_back((int)a[i + 1]);
-			}
-			i += 2;
-		}
-		//sekwencja roznych bajtow
-		else
-		{
-			for (int j = 0; j<(a[i] + 1) && i + 1 + j < a.size(); j++)
-			{
-				decompressedData.push_back((int)a[i + 1 + j]);
-			}
-			i += a[i] + 2;
-		}
-	}
-
-	in.close();
-
-	return decompressedData;
-}
 
 vector<int> Bit6Dedicated()
 {
@@ -812,35 +707,62 @@ vector<int> Bit6Dedicated()
 	return p;
 }
 
-void Draw(vector<int> pixels, bool c, bool p, int w, int h, vector<SDL_Color> paleta)
+vector<int> RLEcompression(vector<int> input)
 {
-	int i = 0;
-	if (c == 1)
-	{
-		for(int x = 0; x < w; x++)
-			for (int y = 0; y < h; y++)
-			{
-				setPixel(x, y, pixels[i] * 255 / 64, pixels[i] * 255 / 64, pixels[i] * 255 / 64);
-				i++;
+	vector<int> Acc, Tmp;
+	vector<int>::const_iterator ii;	// using a const iterator cause we don't intend to modify the contents of the vector
+	vector<int>::iterator kk;
+	int Ch = input[0];
+	int No = 0;
+	int Dif = 0;
+	int Al = 2;			// Allowed number of different -integers-
+
+	for (ii = input.begin(); ii != input.end(); ++ii) {
+		if ((*ii) == Ch) {
+			if (Dif > Al) {
+				Acc.push_back(0);
+				Acc.push_back(Dif);
+				Acc.insert(Acc.end(), Tmp.begin(), Tmp.end());
 			}
-	}
-	else if (p == 1)
-	{
-		for (int x = 0; x < w; x++)
-			for (int y = 0; y < h; y++)
-			{
-				setPixel(x, y, pixels[i] * 85, pixels[i+1] * 85, pixels[i+2] * 85);
-				i += 3;
+			else if (Dif > 0) {
+				// Add -1- before the -integer-
+				for (kk = Tmp.begin(); kk != Tmp.end(); ++kk) {
+					Acc.push_back(1);
+					Acc.push_back(*kk);
+				}
 			}
-	}
-	else if (p == 0)
-	{
-		for (int x = 0; x < w; x++)
-			for (int y = 0; y < h; y++)
-			{
-				setPixel(x, y, paleta[pixels[i]].r, paleta[pixels[i]].g, paleta[pixels[i]].b);
-				i ++;
+			Dif = 0;
+			Tmp.clear();
+			No++;
+		}
+		else {
+			if (No != 1) {
+				Acc.push_back(No);
+				Acc.push_back(Ch);
 			}
+			else {	// -Integer- occurs once
+				Tmp.push_back(Ch);
+				Dif++;
+			}
+			No = 1;
+			Ch = (*ii);
+		}
 	}
-	SDL_UpdateWindowSurface(window);
+
+	// Process the last series
+	if (++Dif > Al) {
+		Acc.push_back(0);
+		Acc.push_back(Dif);
+		Acc.insert(Acc.end(), Tmp.begin(), Tmp.end());
+	}
+	else if (Dif > 0) {
+		for (kk = Tmp.begin(); kk != Tmp.end(); ++kk) {
+			Acc.push_back(1);
+			Acc.push_back(*kk);
+		}
+	}
+	Acc.push_back(No);
+	Acc.push_back(Ch);
+
+	return Acc;
 }

@@ -332,6 +332,11 @@ void readBitmapFromFile()
 
 			Draw(pixels, gray_scale, type_color, pic_width, pic_height, paleta);
 		}
+		else
+		{
+			char fileErr[36] = "The file you dropped is not an .s3g";
+			SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "CRITICAL ERROR", fileErr, window);
+		}
 		file.close();
 	}
 }

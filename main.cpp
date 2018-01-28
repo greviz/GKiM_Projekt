@@ -10,6 +10,7 @@
 #include <SDL/SDL.h>
 #else
 #include <SDL.h>
+#include <SDL_main.h>
 #endif
 
 #include <iostream>
@@ -71,7 +72,7 @@ bool operator  <(const SDL_Color &c1, const SDL_Color &c2)
 	else return c1.r < c2.r;
 }
 
-int main(int argc, char** argv)
+int main(int argc, char* argv[])
 {
 	if (initSdl())
 	{
@@ -108,26 +109,30 @@ int main(int argc, char** argv)
 				{
 					if (isPressedColor == true)
 					{
-						kolor = 0; isPressedColor = false;
+						kolor = 1; isPressedColor = false; isPressedGray = true;
 						ladujButton("Buttons/6BitColorButton.bmp", width, 0);
+						ladujButton("Buttons/6BitGrayButtonH.bmp", width, 60);
 					}
 					else
 					{
-						kolor = 0; isPressedColor = true;
+						kolor = 0; isPressedColor = true; isPressedGray = false;
 						ladujButton("Buttons/6BitColorButtonH.bmp", width, 0);
+						ladujButton("Buttons/6BitGrayButton.bmp", width, 60);
 					}
 				}
 				if (isMouseInButton(60, event.button.x, event.button.y))
 				{
 					if (isPressedGray == true)
 					{
-						kolor = 0; isPressedGray = false;
+						kolor = 0; isPressedGray = false; isPressedColor = true;
 						ladujButton("Buttons/6BitGrayButton.bmp", width, 60);
+						ladujButton("Buttons/6BitColorButtonH.bmp", width, 0);
 					}
 					else
 					{
-						kolor = 1; isPressedGray = true;
+						kolor = 1; isPressedGray = true; isPressedColor = false;
 						ladujButton("Buttons/6BitGrayButtonH.bmp", width, 60);
+						ladujButton("Buttons/6BitColorButton.bmp", width, 0);
 					}
 				}
 				if (isMouseInButton(120, event.button.x, event.button.y))
@@ -147,26 +152,30 @@ int main(int argc, char** argv)
 				{
 					if (isPressedDedicated == true)
 					{
-						paleta = 1; isPressedDedicated = false;
+						paleta = 1; isPressedDedicated = false; isPressedDefault = true;
 						ladujButton("Buttons/DedPalette.bmp", width, 180);
+						ladujButton("Buttons/DefPaletteH.bmp", width, 240);
 					}
 					else
 					{
-						paleta = 0; isPressedDedicated = true;
+						paleta = 0; isPressedDedicated = true; isPressedDefault = false;
 						ladujButton("Buttons/DedPaletteH.bmp", width, 180);
+						ladujButton("Buttons/DefPalette.bmp", width, 240);
 					}
 				}
 				if (isMouseInButton(240, event.button.x, event.button.y))
 				{
 					if (isPressedDefault == true)
 					{
-						paleta = 1; isPressedDefault = false;
+						paleta = 0; isPressedDefault = false; isPressedDedicated = true;
 						ladujButton("Buttons/DefPalette.bmp", width, 240);
+						ladujButton("Buttons/DedPaletteH.bmp", width, 180);
 					}
 					else
 					{
-						paleta = 1; isPressedDefault = true;
+						paleta = 1; isPressedDefault = true;  isPressedDedicated = false;
 						ladujButton("Buttons/DefPaletteH.bmp", width, 240);
+						ladujButton("Buttons/DedPalette.bmp", width, 180);
 					}
 				}
 				if (counter >= 1)
@@ -174,6 +183,12 @@ int main(int argc, char** argv)
 					ladujButton("Buttons/ConvertButton.bmp", 0, height);
 					if (event.button.y > height && event.button.y < height + 60)
 					{
+						cout << "Kolor: 0 = kolor 1 = szarosc Dithering 0 - nie 1 -tak Paleta 0 - dedykowana 1 - default  " << endl;
+						cout << "Kolor: " << kolor << endl;
+						cout << "Dithering: " << dithering << endl;
+						cout << "Paleta: " << paleta << endl;
+						
+
 						saveBitmapToFile();
 						convertMsgBox();
 					}
@@ -707,7 +722,7 @@ vector<int> Bit6Dedicated()
 	return p;
 }
 
-vector<int> RLEcompression(vector<int> input)
+vector<int> RLEcompress(vector<int> input)
 {
 	vector<int> Acc, Tmp;
 	vector<int>::const_iterator ii;	// using a const iterator cause we don't intend to modify the contents of the vector

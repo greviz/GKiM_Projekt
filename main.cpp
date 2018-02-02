@@ -29,12 +29,10 @@ SDL_Renderer * renderer;
 int width = 450;
 int height = 300;
 char const* tytul = "S3g Kompresor";
-int typKompresji, kolor, paleta, dithering;
-int counter;
+int typKompresji, kolor, paleta, dithering, counter;
 bool isPressedColor, isPressedGray, isPressedDithering, isPressedDedicated, isPressedDefault;
 char * fileDir;  // sciezka do pliku
 vector<SDL_Color> Colors64; // tablica najczêstszych 64 kolorów <kolor>
-
 
 int initSdl();
 
@@ -100,7 +98,6 @@ int main(int argc, char* argv[])
 			{
 				fileDir = event.drop.file;
 				counter++;
-				//SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION,"File dropped on window",fileDir,window);
 				ladujBMP(fileDir, 0, 0);
 			}
 			else if (SDL_MOUSEBUTTONDOWN == event.type)
@@ -183,12 +180,6 @@ int main(int argc, char* argv[])
 					ladujButton("Buttons/ConvertButton.bmp", 0, height);
 					if (event.button.y > height && event.button.y < height + 60)
 					{
-						cout << "Kolor: 0 = kolor 1 = szarosc Dithering 0 - nie 1 -tak Paleta 0 - dedykowana 1 - default  " << endl;
-						cout << "Kolor: " << kolor << endl;
-						cout << "Dithering: " << dithering << endl;
-						cout << "Paleta: " << paleta << endl;
-						
-
 						saveBitmapToFile();
 						convertMsgBox();
 					}
@@ -224,17 +215,14 @@ int initSdl()
 
 	initButtons();
 
-
 	if (!screen)
 	{
 		printf("Unable to set video: %s\n", SDL_GetError());
 		return 1;
 	}
 
-
 	return 0;
 }
-
 
 Uint8* getPixelAddress(int x, int y)
 {
@@ -329,7 +317,6 @@ void ladujBMP(char const* nazwa, int x, int y)
 		SDL_FreeSurface(bmp);
 	}
 }
-
 
 vector<int> Bit6Color()
 {
@@ -455,7 +442,6 @@ vector<int> Bit6Dithering()
 	delete e_tab_b;
 	*/
 	return p;
-	
 }
 
 void zapiszBMP(char const * tytul)
@@ -488,6 +474,7 @@ double max(double x, double y)
 	else
 		return y;
 }
+
 void ladujButton(const char *nazwa, int x, int y)
 {
 	SDL_Surface* bmp = SDL_LoadBMP(nazwa);
@@ -511,6 +498,7 @@ void ladujButton(const char *nazwa, int x, int y)
 		SDL_FreeSurface(bmp);
 	}
 }
+
 void initButtons()
 {
 	ladujButton("Buttons/6BitColorButton.bmp", width, 0);
@@ -520,6 +508,7 @@ void initButtons()
 	ladujButton("Buttons/DefPalette.bmp", width, 240);
 	ladujButton("Buttons/DirectoryButton.bmp", 0, height);
 }
+
 bool isMouseInButton(int by, int mx, int my)
 {
 	if (mx < width + 125 && mx > width && my < by + 60 && my>by)
@@ -531,6 +520,7 @@ bool isMouseInButton(int by, int mx, int my)
 		return false;
 	}
 }
+
 void convertMsgBox()
 {
 	string s = fileDir;
@@ -544,6 +534,7 @@ void convertMsgBox()
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "File converted succesfully from BMP to S3g!", fileDir, window);
 	}
 }
+
 void saveBitmapToFile()
 {
 	vector<int> pixels, compressedPixelsByteRun, compressedPixelsRLE;
@@ -596,8 +587,6 @@ void saveBitmapToFile()
 		file.close();
 	}
 }
-
-
 
 vector<int> ByteRunCompress(vector<int> a, int length)
 {
@@ -654,12 +643,11 @@ vector<int> ByteRunCompress(vector<int> a, int length)
 	return output;
 }
 
-
 vector<int> Bit6Dedicated()
 {
 	std::map<SDL_Color, int> Colors; // mapa wszystkich kolorów jakie wystêpuj¹ <kolor, liczba wyst¹pieñ>
 	vector<int> p;
-	const int nbOfColors = 64;  // mogê ³atwo zmieniæ ile najczêstszych koloró biorê pod uwagê
+	const int nbOfColors = 64;  // mogê ³atwo zmieniæ ile najczêstszych kolorów biorê pod uwagê
 
 								// przejechanie po wszystkich pixelach w celu wyszukania wszystkich kolorów
 	for (int i = 0; i < width; ++i) {
@@ -715,7 +703,6 @@ vector<int> Bit6Dedicated()
 					bestColorID = i;
 				}
 			}
-
 			// ustawiam kolor na znaleziony najbli¿szy
 			p.push_back(bestColorID);
 		}
@@ -764,7 +751,6 @@ vector<int> RLEcompress(vector<int> input)
 			Ch = (*ii);
 		}
 	}
-
 	// Process the last series
 	if (++Dif > Al) {
 		Acc.push_back(0);

@@ -28,11 +28,9 @@ SDL_Renderer * renderer;
 int width = 450;
 int height = 300;
 char const* tytul = "S3g Dekompresor";
-int typKompresji, kolor, paleta, dithering;
-int counter;
+int typKompresji, kolor, paleta, dithering, counter;
 char * fileDir;  // sciezka do pliku
 vector<SDL_Color> Colors64; // tablica najczêstszych 64 kolorów <kolor>
-
 
 int initSdl();
 
@@ -73,8 +71,8 @@ int main(int argc, char** argv)
 	paleta = 1;
 	dithering = 0;
 	counter = 0;
-
 	bool done = false;
+
 	while (!done)
 	{
 		SDL_Event event;
@@ -107,7 +105,6 @@ int main(int argc, char** argv)
 			{
 				if (event.key.keysym.sym == SDLK_ESCAPE)
 					done = true;
-
 			}
 		} // end of message processing
 	} // end main loop
@@ -134,17 +131,14 @@ int initSdl()
 
 	initButtons();
 
-
 	if (!screen)
 	{
 		printf("Unable to set video: %s\n", SDL_GetError());
 		return 1;
 	}
 
-
 	return 0;
 }
-
 
 Uint8* getPixelAddress(int x, int y)
 {
@@ -193,12 +187,14 @@ void setPixel(int x, int y, Uint8 R, Uint8 G, Uint8 B)
 			break;
 
 		case 3: //24-bit
-			if (SDL_BYTEORDER == SDL_BIG_ENDIAN) {
+			if (SDL_BYTEORDER == SDL_BIG_ENDIAN) 
+			{
 				pixelAddress[0] = (pixel >> 16) & 0xff;
 				pixelAddress[1] = (pixel >> 8) & 0xff;
 				pixelAddress[2] = pixel & 0xff;
 			}
-			else {
+			else 
+			{
 				pixelAddress[0] = pixel & 0xff;
 				pixelAddress[1] = (pixel >> 8) & 0xff;
 				pixelAddress[2] = (pixel >> 16) & 0xff;
@@ -211,7 +207,6 @@ void setPixel(int x, int y, Uint8 R, Uint8 G, Uint8 B)
 	}
 	/* update the screen (aka double buffering) */
 }
-
 
 void zapiszBMP(char const * tytul)
 {
@@ -236,7 +231,6 @@ void ladujButton(const char *nazwa, int x, int y)
 		button.h = 60;
 		button.w = 125;
 
-
 		SDL_BlitSurface(bmp, 0, screen, &button);
 
 		SDL_UpdateWindowSurface(window);
@@ -244,10 +238,12 @@ void ladujButton(const char *nazwa, int x, int y)
 		SDL_FreeSurface(bmp);
 	}
 }
+
 void initButtons()
 {
 	ladujButton("Buttons/DirectoryButton.bmp", 0, height);
 }
+
 bool isMouseInButton(int by, int mx, int my)
 {
 	if (mx < width + 125 && mx > width && my < by + 60 && my>by)
@@ -259,6 +255,7 @@ bool isMouseInButton(int by, int mx, int my)
 		return false;
 	}
 }
+
 void convertMsgBox()
 {
 	string s = fileDir;
@@ -272,6 +269,7 @@ void convertMsgBox()
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "File converted succesfully from S3g to BMP!", fileDir, window);
 	}
 }
+
 void readBitmapFromFile()
 {
 	int color_amount, size_file, offset_file, pic_width, pic_height, type_comp, gray_scale, type_color, offset_color, pomocnicza;
@@ -281,7 +279,6 @@ void readBitmapFromFile()
 	SDL_Color temp;
 	ifstream file;
 	file.open(fileDir);
-
 
 	if (file.good())
 	{
@@ -411,7 +408,6 @@ vector<int> RLEdecompress(vector<int> str)
 
 	return output;
 }
-
 
 void Draw(vector<int> pixels, bool c, bool p, int w, int h, vector<SDL_Color> paleta)
 {

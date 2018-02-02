@@ -442,7 +442,7 @@ vector<int> Bit6Dithering()
 			p.push_back(najblizszyB);
 		}
 	}
-
+	/*
 	for (int i = 0; i < width + 1; i++)
 	{
 		delete e_tab_r[i];
@@ -453,8 +453,9 @@ vector<int> Bit6Dithering()
 	delete e_tab_r;
 	delete e_tab_g;
 	delete e_tab_b;
-
+	*/
 	return p;
+	
 }
 
 void zapiszBMP(char const * tytul)

@@ -38,7 +38,6 @@ void Draw(vector<int> pixels, bool c, bool p, int w, int h, vector<SDL_Color> pa
 void zapiszBMP(char const * nazwa);
 void ladujButton(char const* nazwa, int x, int y);
 void initButtons();
-bool isMouseInButton(int by, int mx, int my);
 void convertMsgBox();
 void readBitmapFromFile();
 vector<int> ByteRunDecompress(vector<int> a);
@@ -242,18 +241,6 @@ void ladujButton(const char *nazwa, int x, int y)
 void initButtons()
 {
 	ladujButton("Buttons/DirectoryButton.bmp", 0, height);
-}
-
-bool isMouseInButton(int by, int mx, int my)
-{
-	if (mx < width + 125 && mx > width && my < by + 60 && my>by)
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
 }
 
 void convertMsgBox()
